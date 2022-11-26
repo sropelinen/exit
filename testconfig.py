@@ -6,8 +6,9 @@
 NAME = "Testi"
 
 MASS = (50, 90)     # Min and max mass
-SPEED = (200, 300)  # Min and max speed
+SPEED = (250, 100)  # Avg and std of speed
 RADIUS = (15, 25)   # Min and max radius
+ACCELERATION = 350
 
 # Wall segments
 # [p1.x, p1.y, p2.x, p2.y]
