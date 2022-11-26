@@ -8,11 +8,10 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from testconfig import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS
+from testconfig import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 
 # ToDo:
-# - Kiihtyvyys
 # - Ihmisten sijainnit
 
 
@@ -30,7 +29,7 @@ class Person:
         self.r = r
         self.maxspeed = ms
         self.room = room
-        self.acceleration = 500
+        self.acceleration = ACCELERATION
 
         self.out = False  # Has exited
         self.target = -1  # Target door id
@@ -74,7 +73,8 @@ class Simulation:
                     y * 70 + 430 + random.random() * 30,
                     RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
                     MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
+                    max(min(np.random.normal(SPEED[0], SPEED[1]),
+                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
                     1, self._space
                 ))
                 self.people.append(Person(
@@ -82,7 +82,8 @@ class Simulation:
                     y * 70 + 430 + random.random() * 30,
                     RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
                     MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
+                    max(min(np.random.normal(SPEED[0], SPEED[1]),
+                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
                     2, self._space
                 ))
         for x in range(8):
@@ -92,7 +93,8 @@ class Simulation:
                     y * 70 + 150 + random.random() * 30,
                     RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
                     MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
+                    max(min(np.random.normal(SPEED[0], SPEED[1]),
+                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
                     0, self._space
                 ))
 
@@ -135,26 +137,32 @@ class Simulation:
             if p.out:
                 continue
             # Check if the person has exited a door
-            door = -1
-            mindist = 0
             for d in self.rooms[p.room][:-1]:
-                _, dist = self._to_door(p, d)
-                if dist < 0:
+                _, dist, ad = self._to_door(p, d)
+                if dist <= 0 and ad:
                     if d[4] == -1:
                         self._exit(p)
                         break
-                    if not mindist or dist > mindist:
-                        mindist = dist
-                        door = d
-            # If exited, update current room and target
-            if mindist:
-                p.room = door[4]
-                p.target = self._determine_target(p)
+                    p.room = d[4]
+                    p.target = self._determine_target(p)
             # Move the person towards the target point
-            d, _ = self._to_door(p, self.rooms[p.room][p.target])
+            d, _, _ = self._to_door(p, self.rooms[p.room][p.target])
             v = p._body.velocity
             a = p.acceleration
-            f = (a * d - a / p.maxspeed * v) * p._body.mass
+            if v[0] == 0 and v[1] == 0:
+                nd = d
+            else:
+                av = a * self._dt
+                vd = np.dot(d, np.dot(v, d))
+                x = np.linalg.norm(v - vd)
+                if av <= x:
+                    nd = vd - v
+                else:
+                    nd = vd + d * (av**2 - x**2)**.5 - v
+                nd = nd / np.linalg.norm(nd)
+                nd = d + 2 * nd
+                nd = nd / np.linalg.norm(nd)
+            f = (a * nd - a / p.maxspeed * v) * p._body.mass
             p._body.apply_force_at_local_point((f[0], f[1]))
 
     """
@@ -164,9 +172,9 @@ class Simulation:
         room = self.rooms[person.room]
         exits = room[-1]
         target = exits[0]
-        _, mindist = self._to_door(person, room[target])
+        _, mindist, _ = self._to_door(person, room[target])
         for e in exits[1:]:
-            _, dist = self._to_door(person, room[e])
+            _, dist, _ = self._to_door(person, room[e])
             if dist < mindist:
                 mindist = dist
                 target = e
@@ -179,33 +187,44 @@ class Simulation:
             self._running = False
 
     """
-    Returns direction and shortest distance to a door.
+    Returns direction, shortest distance and boolean value if at door.
     Door is a segment between two points.
     Distance is negative if person is outside the door.
     """
     def _to_door(self, person, door):
         pos = person.get_pos()
-        p1 = np.array([door[0], door[1]])
-        p2 = np.array([door[2], door[3]])
-        v = p2 - p1
+        op1 = np.array([door[0], door[1]])
+        op2 = np.array([door[2], door[3]])
+        v = op2 - op1
         # Modify p1 and p2 to take into account the radius of a person
         vn = v / np.sum(v**2)**.5
-        p1 = p1 + vn * person.r * 1.5
-        p2 = p2 - vn * person.r * 1.5
-
+        p1 = op1 + vn * person.r
+        p2 = op2 - vn * person.r
+        # Spagettia
         v = p2 - p1
         u = pos - p1
         d = np.dot(u, v) / np.dot(v, v)
-        # c = closest point on the segment to a person
         if d <= 0:
-            c = p1
+            t = op1 - pos
+            td = np.linalg.norm(t)
+            if person.r / td <= 1:
+                angle = np.arctan2(t[1], t[0]) + np.arcsin(person.r / td)
+                c = pos + td * np.array([np.cos(angle), np.sin(angle)])
+            else:
+                c = p1
         elif d >= 1:
-            c = p2
+            t = op2 - pos
+            td = np.linalg.norm(t)
+            if person.r / td <= 1:
+                angle = np.arctan2(t[1], t[0]) - np.arcsin(person.r / td)
+                c = pos + td * np.array([np.cos(angle), np.sin(angle)])
+            else:
+                c = p2
         else:
             c = p1 + v * d
         a = c - pos
         dist = np.sum(a**2)**.5 * (2 * (np.cross(u, v) < 0) - 1)
-        return a / dist, dist
+        return a / dist, dist, 0 <= d <= 1
 
 
 if __name__ == "__main__":
@@ -223,5 +242,7 @@ if __name__ == "__main__":
             for e in times:
                 file.write("%f\n" % e)
     if PRINT:
-        print("Keskiarvoinen suoritusaika: %.2fs" % (sum(times) / ITERATIONS))
+        if ITERATIONS > 1:
+            print("Keskiarvoinen suoritusaika: %.2fs"
+                  % (sum(times) / ITERATIONS))
         print("Kiitos ohjelman käytöstä!")
