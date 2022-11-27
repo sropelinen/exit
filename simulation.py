@@ -11,10 +11,6 @@ import numpy as np
 from testconfig import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 
-# ToDo:
-# - Ihmisten sijainnit
-
-
 ITERATIONS = 1
 VISUAL = True
 
@@ -37,6 +33,7 @@ class Person:
         self._body = pymunk.Body()
         self._body.position = x, y
         self._shape = pymunk.Circle(self._body, self.r)
+        self._shape.color = pygame.Color("red")
         self._shape.mass = m
         self._space = space
         self._space.add(self._body, self._shape)
@@ -60,6 +57,8 @@ class Simulation:
             self._screen = pygame.display.set_mode((1000, 800))
             self._clock = pygame.time.Clock()
             self._options = pymunk.pygame_util.DrawOptions(self._screen)
+            self._options.shape_outline_color = (255, 0, 0)
+            pymunk.pygame_util.positive_y_is_up = True
         self._space = pymunk.Space(threaded=True)
 
     def initialize(self):
@@ -70,14 +69,15 @@ class Simulation:
             dx = abs(room[-2][0] - room[-2][2])
             dy = abs(room[-2][1] - room[-2][3])
             for _ in range(room[-2][-1]):
+                r = RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0])
                 self.people.append(Person(
-                    x = room[-2][0] + dx * random.random(),
-                    y = room[-2][1] + dy * random.random(),
-                    r = RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
-                    m = MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    ms = SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
-                    room = i,
-                    space = self._space
+                    x=room[-2][0] + r + (dx - 2 * r) * random.random(),
+                    y=room[-2][1] + r + (dy - 2 * r) * random.random(),
+                    r=r,
+                    m=MASS[0] + random.random() * (MASS[1] - MASS[0]),
+                    ms=SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
+                    room=i,
+                    space=self._space
                 ))
 
         for p in self.people:
@@ -87,7 +87,12 @@ class Simulation:
         building = self._space.static_body
         for s in WALLS:
             segment = pymunk.Segment(building, (s[0], s[1]), (s[2], s[3]), 1)
+            segment.color = pygame.Color("black")
             self._space.add(segment)
+
+        # Prevent people starting inside each other
+        for _ in range(3):
+            self._space.step(1)
 
     def run(self):
         self._running = True
