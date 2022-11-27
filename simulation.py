@@ -64,38 +64,20 @@ class Simulation:
 
     def initialize(self):
         self.rooms = ROOMS
-        # HUOM väliaikainen tapa määrittää ihmisten sijainnit
+
         self.people = []
-        for x in range(5):
-            for y in range(4):
+        for i, room in enumerate(ROOMS):
+            dx = abs(room[-2][0] - room[-2][2])
+            dy = abs(room[-2][1] - room[-2][3])
+            for _ in range(room[-2][-1]):
                 self.people.append(Person(
-                    x * 70 + 150 + random.random() * 30,
-                    y * 70 + 430 + random.random() * 30,
-                    RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
-                    MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    max(min(np.random.normal(SPEED[0], SPEED[1]),
-                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
-                    1, self._space
-                ))
-                self.people.append(Person(
-                    x * 70 + 550 + random.random() * 30,
-                    y * 70 + 430 + random.random() * 30,
-                    RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
-                    MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    max(min(np.random.normal(SPEED[0], SPEED[1]),
-                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
-                    2, self._space
-                ))
-        for x in range(8):
-            for y in range(4):
-                self.people.append(Person(
-                    x * 70 + 250 + random.random() * 30,
-                    y * 70 + 150 + random.random() * 30,
-                    RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
-                    MASS[0] + random.random() * (MASS[1] - MASS[0]),
-                    max(min(np.random.normal(SPEED[0], SPEED[1]),
-                            SPEED[0] + SPEED[1]), SPEED[0] - SPEED[1]),
-                    0, self._space
+                    x = room[-2][0] + dx * random.random(),
+                    y = room[-2][1] + dy * random.random(),
+                    r = RADIUS[0] + random.random() * (RADIUS[1] - RADIUS[0]),
+                    m = MASS[0] + random.random() * (MASS[1] - MASS[0]),
+                    ms = SPEED[0] + random.random() * (SPEED[1] - SPEED[0]),
+                    room = i,
+                    space = self._space
                 ))
 
         for p in self.people:
@@ -137,7 +119,7 @@ class Simulation:
             if p.out:
                 continue
             # Check if the person has exited a door
-            for d in self.rooms[p.room][:-1]:
+            for d in self.rooms[p.room][:-2]:
                 _, dist, ad = self._to_door(p, d)
                 if dist <= 0 and ad:
                     if d[4] == -1:
