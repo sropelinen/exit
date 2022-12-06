@@ -8,10 +8,10 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from testconfig import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
+from room3_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 
-ITERATIONS = 1
+ITERATIONS = 100
 VISUAL = True
 
 PRINT = len(sys.argv) == 1
