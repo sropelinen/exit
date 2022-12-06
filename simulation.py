@@ -8,8 +8,7 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from room3_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
-
+from S_2_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 ITERATIONS = 100
 VISUAL = True
@@ -131,7 +130,7 @@ class Simulation:
                         self._exit(p)
                         break
                     p.room = d[4]
-                    p.target = self._determine_target(p)
+                    #p.target = self._determine_target(p)
             # Move the person towards the target point
             d, _, _ = self._to_door(p, self.rooms[p.room][p.target])
             v = p._body.velocity
@@ -151,7 +150,7 @@ class Simulation:
                 nd = nd / np.linalg.norm(nd)
             f = (a * nd - a / p.maxspeed * v) * p._body.mass
             p._body.apply_force_at_local_point((f[0], f[1]))
-
+            p.target = self._determine_target(p)
     """
     Determine which door a person should target next.
     """
@@ -211,7 +210,8 @@ class Simulation:
             c = p1 + v * d
         a = c - pos
         dist = np.sum(a**2)**.5 * (2 * (np.cross(u, v) < 0) - 1)
-        return a / dist, dist, 0 <= d <= 1
+        dist2 = np.linalg.norm((op1 + op2) / 2 - pos) * (2 * (np.cross(u, v) < 0) - 1)
+        return a / dist, dist2, 0 <= d <= 1
 
 
 if __name__ == "__main__":
