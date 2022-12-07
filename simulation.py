@@ -8,7 +8,7 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from L_1_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
+from L_2_2 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 ITERATIONS = 100
 VISUAL = True
