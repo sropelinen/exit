@@ -3,10 +3,10 @@
 # Distance: cm
 # Time: s
 
-NAME = "Testi"
+NAME = "S_3_1"
 
 MASS = (50, 90)     # Min and max mass
-SPEED = (250, 100)  # Avg and std of speed
+SPEED = (150, 350)  # Min and max speed
 RADIUS = (15, 25)   # Min and max radius
 ACCELERATION = 350
 

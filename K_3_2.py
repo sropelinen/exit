@@ -3,10 +3,10 @@
 # Distance: cm
 # Time: s
 
-NAME = "Testi"
+NAME = "K_3_2"
 
 MASS = (50, 90)     # Min and max mass
-SPEED = (250, 100)  # Avg and std of speed
+SPEED = (150, 350)  # Min and max speed
 RADIUS = (15, 25)   # Min and max radius
 ACCELERATION = 350
 
@@ -30,7 +30,7 @@ WALLS = [
     [500, 600, 500, 700],
     [800, 100, 800, 400],
     [900, 400, 900, 700],
-    [400, 400, 300, 400]
+    [500, 500, 500, 600]
 ]
 
 

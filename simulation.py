@@ -8,7 +8,7 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from L_2_2 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
+from K_1_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 ITERATIONS = 100
 VISUAL = True
@@ -80,7 +80,7 @@ class Simulation:
                 ))
 
         for p in self.people:
-            p.target = self._determine_target(p)
+            p.target = self._determine_target_rand(p)
         self._npeople = len(self.people)
 
         building = self._space.static_body
@@ -130,7 +130,7 @@ class Simulation:
                         self._exit(p)
                         break
                     p.room = d[4]
-                    #p.target = self._determine_target(p)
+                    p.target = self._determine_target_rand(p)
             # Move the person towards the target point
             d, _, _ = self._to_door(p, self.rooms[p.room][p.target])
             v = p._body.velocity
@@ -150,7 +150,7 @@ class Simulation:
                 nd = nd / np.linalg.norm(nd)
             f = (a * nd - a / p.maxspeed * v) * p._body.mass
             p._body.apply_force_at_local_point((f[0], f[1]))
-            p.target = self._determine_target(p)
+
     """
     Determine which door a person should target next.
     """
@@ -165,6 +165,38 @@ class Simulation:
                 mindist = dist
                 target = e
         return target
+
+    def _determine_target_rand(self, person):
+        room = self.rooms[person.room]
+        exits = room[-1]
+        if len(exits) == 1:
+            return exits[0]
+        target1 = exits[0]
+        target2 = exits[0]
+        _, mindist1, _ = self._to_door(person, room[target1])
+        mindist2 = mindist1
+        _, md2, _ = self._to_door(person, room[exits[1]])
+        if md2 < mindist1:
+            mindist1 = md2
+            target1 = exits[1]
+        else:
+            mindist2 = md2
+            target2 = exits[1]
+        for e in exits[2:]:
+            _, dist, _ = self._to_door(person, room[e])
+            if dist < mindist2:
+                if dist < mindist1:
+                    mindist2 = mindist1
+                    mindist1 = dist
+                    target2 = target1
+                    target1 = e
+                else:
+                    mindist2 = dist
+                    target2 = e
+        if random.random() > 0.33:
+            return target1
+        else:
+            return target2
 
     def _exit(self, person):
         self._npeople -= 1
@@ -182,36 +214,45 @@ class Simulation:
         op1 = np.array([door[0], door[1]])
         op2 = np.array([door[2], door[3]])
         v = op2 - op1
+        u = pos - op1
+        ed = np.dot(u, v) / np.dot(v, v)
+        r = person.r
+
         # Modify p1 and p2 to take into account the radius of a person
         vn = v / np.sum(v**2)**.5
-        p1 = op1 + vn * person.r
-        p2 = op2 - vn * person.r
-        # Spagettia
+        p1 = op1 + vn * r
+        p2 = op2 - vn * r
+
+        # Loppu spagettia, en ees yritä selittää
         v = p2 - p1
         u = pos - p1
         d = np.dot(u, v) / np.dot(v, v)
+
         if d <= 0:
-            t = op1 - pos
+            t = op2 - pos
             td = np.linalg.norm(t)
-            if person.r / td <= 1:
-                angle = np.arctan2(t[1], t[0]) + np.arcsin(person.r / td)
+            if r / td <= 1:
+                angle = np.arctan2(t[1], t[0]) + np.arcsin(r / td)
                 c = pos + td * np.array([np.cos(angle), np.sin(angle)])
             else:
                 c = p1
         elif d >= 1:
-            t = op2 - pos
+            t = op1 - pos
             td = np.linalg.norm(t)
-            if person.r / td <= 1:
-                angle = np.arctan2(t[1], t[0]) - np.arcsin(person.r / td)
+            if r / td <= 1:
+                angle = np.arctan2(t[1], t[0]) - np.arcsin(r / td)
                 c = pos + td * np.array([np.cos(angle), np.sin(angle)])
             else:
                 c = p2
         else:
             c = p1 + v * d
+            if np.linalg.norm(c - pos) > 100:
+                c = (p1 + p2) / 2
         a = c - pos
-        dist = np.sum(a**2)**.5 * (2 * (np.cross(u, v) < 0) - 1)
-        dist2 = np.linalg.norm((op1 + op2) / 2 - pos) * (2 * (np.cross(u, v) < 0) - 1)
-        return a / dist, dist2, 0 <= d <= 1
+        pm = (2 * (np.cross(u, v) < 0) - 1)
+        dist = np.sum(a**2)**.5 * pm
+        realdist = np.linalg.norm((op1 + op2) / 2 - pos) * pm
+        return a / dist, realdist, 0 <= ed <= 1
 
 
 if __name__ == "__main__":
