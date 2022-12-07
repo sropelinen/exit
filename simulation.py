@@ -8,7 +8,7 @@ import pymunk.pygame_util
 import random
 import numpy as np
 
-from K_3_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
+from K_1_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 
 ITERATIONS = 100
