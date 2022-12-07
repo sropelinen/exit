@@ -12,7 +12,7 @@ from K_1_1 import NAME, WALLS, ROOMS, MASS, SPEED, RADIUS, ACCELERATION
 
 
 ITERATIONS = 100
-VISUAL = True
+VISUAL = 1
 
 PRINT = len(sys.argv) == 1
 if PRINT:
@@ -194,7 +194,9 @@ class Simulation:
                 else:
                     mindist2 = dist
                     target2 = e
-        if random.random() > 0.33:
+        if mindist2 / mindist1 > 1.25:
+            return target1
+        if random.random() > 0.5:
             return target1
         else:
             return target2
